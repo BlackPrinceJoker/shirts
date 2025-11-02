@@ -186,6 +186,26 @@
                 document.body.style.overflow = ''; // Restores scrolling
             }
             // ---------------------------
+            
+            /**
+             * Silently pre-loads the images for a specific material and view into the browser cache.
+             * This makes subsequent switches to this view instantaneous.
+             * @param {string} materialFolder - 'cotton' or 'blend'
+             * @param {boolean} isFront - true for front view, false for back view.
+             */
+            function preLoadImages(materialFolder, isFront) {
+                const count = materialFolder === 'cotton' ? COTTON_COUNT : BLEND_COUNT;
+                
+                // console.log(`Pre-loading ${materialFolder} - ${isFront ? 'Front' : 'Back'} views (${count} images).`);
+
+                for (let i = 1; i <= count; i++) {
+                    const src = generateImageSrc(i, isFront);
+                    // Create a new Image object. Assigning the src triggers the browser to fetch and cache it.
+                    const img = new Image();
+                    img.src = src;
+                }
+            }
+
 
             /**
              * Generates the correct image source (src) based on all current state variables.
@@ -214,6 +234,8 @@
 
                     // Update the image element's source and alt text
                     const paddedId = String(shirtId).padStart(2, '0');
+                    
+                    // Since we pre-load, changing the src here will now pull from the cache if available.
                     img.src = newSrc;
                     img.alt = `Design ${paddedId} - ${isFrontView ? 'Front' : 'Back'} (${currentMaterialFolder})`;
                     img.dataset.currentView = isFrontView ? 'front' : 'back';
@@ -305,8 +327,11 @@
                     viewToggleButton.setAttribute('aria-pressed', 'true');
                 }
 
-                // Update all image sources based on the new view state
+                // Update all image sources based on the new view state (now using cached images)
                 updateAllImageSources();
+                
+                // NEW: After toggling, start pre-loading the new "opposite" view for the *next* toggle
+                preLoadImages(currentMaterialFolder, !isFrontView);
             }
 
             /**
@@ -339,10 +364,16 @@
                 // IMPORTANT: Call the master update function to re-render the gallery 
                 // with the correct number of cards (44 for cotton, 34 for blend)
                 updateGallery();
+                
+                // NEW: Targeted Pre-loading: Pre-load the opposite view of the newly active material
+                preLoadImages(currentMaterialFolder, !isFrontView);
             }
 
             // 1. Initial Render
             updateGallery();
+
+            // 1.1 Targeted Pre-loading: Pre-load the opposite view of the initially loaded material (Cotton Back)
+            preLoadImages(currentMaterialFolder, !isFrontView);
 
             // 2. Attach Event Listener to the Floating View Toggle
             viewToggleButton.addEventListener('click', toggleView);
