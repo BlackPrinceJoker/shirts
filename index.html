@@ -35,7 +35,7 @@
 </head>
 <body class="bg-gray-50 font-sans min-h-screen">
 
-    <!-- Header: Removed 'sticky top-0 z-10' to stop floating -->
+    <!-- Header -->
     <header class="bg-white shadow-md">
         <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row sm:justify-between sm:items-center">
             <!-- Title Section & NEW Disclaimer -->
@@ -55,14 +55,14 @@
                     <button id="cotton-button" 
                             data-folder="cotton"
                             class="material-option px-3 py-1 text-sm rounded-full font-semibold transition duration-200 ease-in-out focus:outline-none 
-                                   bg-indigo-600 text-white shadow-md">
+                                    bg-indigo-600 text-white shadow-md">
                         100% Cotton
                     </button>
                     <!-- Blend Button (Initially Inactive) -->
                     <button id="blend-button" 
                             data-folder="blend"
                             class="material-option px-3 py-1 text-sm rounded-full font-semibold transition duration-200 ease-in-out focus:outline-none 
-                                   text-gray-700 hover:bg-gray-200">
+                                    text-gray-700 hover:bg-gray-200">
                         60/40 Cotton Polly Blend
                     </button>
                 </div>
@@ -164,10 +164,12 @@
             const modalCloseButton = document.getElementById('modal-close-button');
 
 
-            // State variables
+            // --- CONSTANTS AND STATE ---
+            const COTTON_COUNT = 44; // Total number of designs for 100% Cotton
+            const BLEND_COUNT = 34;  // Total number of designs for 60/40 Blend
+
             let isFrontView = true; // Front/Back view state
             let currentMaterialFolder = 'cotton'; // Folder state ('cotton' or 'blend')
-            const totalShirts = 44; // Total number of design slots
             
             // --- MODAL HANDLERS ---
             function openModal(src, alt) {
@@ -194,7 +196,6 @@
                 const prefix = isFrontView ? 'f' : 'b';
                 
                 // The URL is constructed using the current folder state: 'cotton' or 'blend'
-                // The onerror handler will catch images > 34 when 'blend' is active.
                 return `${currentMaterialFolder}/${prefix}c${paddedId}.png`;
             }
 
@@ -219,22 +220,23 @@
             }
 
             /**
-             * Renders the initial gallery grid structure (44 items).
+             * Generates the HTML string for the gallery cards based on a given count.
+             * @param {number} count - The number of cards to generate.
+             * @returns {string} The HTML string for the cards.
              */
-            function renderGallery() {
+            function generateCardHTML(count) {
                 let html = '';
-                for (let i = 1; i <= totalShirts; i++) {
+                for (let i = 1; i <= count; i++) {
                     const paddedId = String(i).padStart(2, '0');
                     html += `
                         <div class="bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 transform hover:scale-[1.02]">
-                            <!-- Image element: Initial src="" but will be corrected by updateAllImageSources -->
+                            <!-- The image tag NO LONGER includes the inline onerror attribute -->
                             <img id="shirt-${paddedId}" 
-                                 data-shirt-id="${i}"
-                                 data-current-view="front"
-                                 src="" 
-                                 alt="T-Shirt Design ${i}" 
-                                 class="w-full h-auto object-cover aspect-square object-right cursor-pointer"
-                                 onerror="this.onerror=null; this.src='https://placehold.co/300x300/F0F4F8/1F2937?text=Image+Not+Found';"
+                                data-shirt-id="${i}"
+                                data-current-view="front"
+                                src="" 
+                                alt="T-Shirt Design ${i}" 
+                                class="w-full h-auto object-cover aspect-square object-right cursor-pointer"
                             >
                             <div class="p-4 text-center">
                                 <p class="text-sm font-medium text-gray-700">Design ${paddedId}</p>
@@ -242,17 +244,39 @@
                         </div>
                     `;
                 }
-                galleryGrid.innerHTML = html;
+                return html;
+            }
 
-                // Set initial image sources and attach listeners after elements are in the DOM
-                updateAllImageSources(); 
+            /**
+             * Master function to update the gallery display based on the current material selection.
+             */
+            function updateGallery() {
+                // 1. Determine the correct count based on the current material folder
+                const shirtCount = currentMaterialFolder === 'cotton' ? COTTON_COUNT : BLEND_COUNT;
                 
-                // Attach click listeners to all newly rendered images to open the modal
+                // 2. Clear and insert the new, correct number of cards
+                galleryGrid.innerHTML = generateCardHTML(shirtCount);
+
+                // 3. Attach click listeners and the proper JavaScript error handler
                 galleryGrid.querySelectorAll('img[data-shirt-id]').forEach(img => {
+                    // Click listener
                     img.addEventListener('click', () => {
                         openModal(img.src, img.alt);
                     });
+
+                    // NEW: Error handler attached via JS to prevent the inline attribute from displaying
+                    img.addEventListener('error', function() {
+                        // Get the design ID for the placeholder text
+                        const paddedId = String(this.dataset.shirtId).padStart(2, '0');
+                        // Set the placeholder source
+                        this.src = `https://placehold.co/300x300/F0F4F8/1F2937?text=Design+${paddedId}`;
+                        // Remove the error listener to prevent infinite loops if the placeholder fails
+                        this.onerror = null;
+                    });
                 });
+
+                // 4. Set the correct image sources (which triggers the loading/error handlers)
+                updateAllImageSources();
             }
 
             /**
@@ -306,12 +330,13 @@
                 deactivateButton.classList.remove(...activeClasses);
                 deactivateButton.classList.add(...inactiveClasses);
 
-                // Update all image sources based on the new material folder
-                updateAllImageSources();
+                // IMPORTANT: Call the master update function to re-render the gallery 
+                // with the correct number of cards (44 for cotton, 34 for blend)
+                updateGallery();
             }
 
             // 1. Initial Render
-            renderGallery();
+            updateGallery();
 
             // 2. Attach Event Listener to the Floating View Toggle
             viewToggleButton.addEventListener('click', toggleView);
