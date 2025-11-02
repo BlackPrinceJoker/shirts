@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>T-Shirt Gallery</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for the floating view toggle button (kept floating) */
+        .floating-toggle {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 50;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s;
+        }
+        .floating-toggle:hover {
+            transform: scale(1.05);
+        }
+    </style>
+    <script>
+        // Set up the Tailwind configuration to use the Inter font
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 font-sans min-h-screen">
+
+    <!-- Header: Removed 'sticky top-0 z-10' to stop floating -->
+    <header class="bg-white shadow-md">
+        <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row sm:justify-between sm:items-center">
+            <!-- Title Section & NEW Disclaimer -->
+            <div>
+                <h1 class="text-3xl font-extrabold text-gray-900">T-Shirt Collection Preview</h1>
+                <!-- NEW DISCLAIMER about color accuracy -->
+                <p class="text-xs text-red-600 bg-red-100 rounded-lg p-2 mt-2 inline-block">
+                    Disclaimer: Actual product colors may vary slightly and may appear less vibrant than shown in these digital mockups.
+                </p>
+            </div>
+            
+            <!-- Material Toggle Segmented Control -->
+            <div class="mt-4 sm:mt-0 flex items-center space-x-2">
+                <span class="text-sm font-medium text-gray-700">Material:</span>
+                <div class="inline-flex rounded-full bg-gray-100 p-1 shadow-inner">
+                    <!-- Cotton Button (Initially Active) -->
+                    <button id="cotton-button" 
+                            data-folder="cotton"
+                            class="material-option px-3 py-1 text-sm rounded-full font-semibold transition duration-200 ease-in-out focus:outline-none 
+                                   bg-indigo-600 text-white shadow-md">
+                        100% Cotton
+                    </button>
+                    <!-- Blend Button (Initially Inactive) -->
+                    <button id="blend-button" 
+                            data-folder="blend"
+                            class="material-option px-3 py-1 text-sm rounded-full font-semibold transition duration-200 ease-in-out focus:outline-none 
+                                   text-gray-700 hover:bg-gray-200">
+                        60/40 Cotton Polly Blend
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Gallery Container -->
+    <main class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+        <div id="gallery-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6" aria-live="polite">
+            <!-- Images will be injected here by JavaScript -->
+        </div>
+    </main>
+    
+    <!-- Fullscreen Modal -->
+    <div id="image-modal" class="fixed inset-0 bg-black bg-opacity-90 z-[100] hidden flex items-center justify-center p-4 transition-opacity duration-300" role="dialog" aria-modal="true" aria-hidden="true">
+        
+        <!-- Modal Content Container -->
+        <div class="relative w-full max-w-4xl h-auto max-h-[90vh] bg-gray-900 rounded-lg overflow-hidden shadow-2xl">
+            
+            <!-- Modal Image -->
+            <img id="modal-image" src="" alt="Full size T-Shirt View" class="w-full h-full object-contain mx-auto">
+            
+            <!-- Close Button -->
+            <button id="modal-close-button" class="absolute top-4 right-4 text-white hover:text-gray-300 transition duration-150 p-2 rounded-full bg-black bg-opacity-50 hover:bg-opacity-75 focus:outline-none focus:ring-2 focus:ring-white">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Floating Toggle Button (View: Front/Back) -->
+    <button id="view-toggle" class="floating-toggle flex items-center justify-center space-x-2 p-4 rounded-full bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-500 focus:ring-opacity-50 transition duration-150 ease-in-out" aria-pressed="false">
+        <!-- SVG Icon for Front (Default) -->
+        <svg id="icon-front" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        </svg>
+        <!-- SVG Icon for Back (Hidden by Default) -->
+        <svg id="icon-back" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.828 0l-4.243-4.243m10.121-5.121a2 2 0 110 3.394M12 3a8 8 0 00-8 8v7l3-3 4 4 4-4 3 3v-7a8 8 0 00-8-8z" />
+        </svg>
+        <span id="toggle-label" class="font-semibold">Show Back View</span>
+    </button>
+
+    <!-- Firebase SDK Imports (Mandatory Inclusion) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // IMPORTANT: These global variables are provided by the environment
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let db, auth;
+
+        // Initialize Firebase and Authenticate
+        try {
+            setLogLevel('Debug');
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+
+            const authenticate = async () => {
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                console.log("Firebase initialized and user authenticated.");
+            }
+            authenticate();
+
+        } catch (error) {
+            console.error("Firebase initialization failed:", error);
+        }
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const galleryGrid = document.getElementById('gallery-grid');
+            
+            // View Toggle (Floating) Elements
+            const viewToggleButton = document.getElementById('view-toggle');
+            const viewToggleLabel = document.getElementById('toggle-label');
+            const iconFront = document.getElementById('icon-front');
+            const iconBack = document.getElementById('icon-back');
+            
+            // Material Toggle (Header) Elements
+            const cottonButton = document.getElementById('cotton-button');
+            const blendButton = document.getElementById('blend-button');
+
+            // Modal elements
+            const imageModal = document.getElementById('image-modal');
+            const modalImage = document.getElementById('modal-image');
+            const modalCloseButton = document.getElementById('modal-close-button');
+
+
+            // State variables
+            let isFrontView = true; // Front/Back view state
+            let currentMaterialFolder = 'cotton'; // Folder state ('cotton' or 'blend')
+            const totalShirts = 44; // Total number of design slots
+            
+            // --- MODAL HANDLERS ---
+            function openModal(src, alt) {
+                modalImage.src = src;
+                modalImage.alt = alt;
+                imageModal.classList.remove('hidden');
+                imageModal.setAttribute('aria-hidden', 'false');
+                document.body.style.overflow = 'hidden'; // Prevents scrolling background
+            }
+
+            function closeModal() {
+                imageModal.classList.add('hidden');
+                imageModal.setAttribute('aria-hidden', 'true');
+                document.body.style.overflow = ''; // Restores scrolling
+            }
+            // ---------------------------
+
+            /**
+             * Generates the correct image source (src) based on all current state variables.
+             * Path: [currentMaterialFolder]/[f or b]c[XX].png
+             */
+            function generateImageSrc(id, isFrontView) {
+                const paddedId = String(id).padStart(2, '0');
+                const prefix = isFrontView ? 'f' : 'b';
+                
+                // The URL is constructed using the current folder state: 'cotton' or 'blend'
+                // The onerror handler will catch images > 34 when 'blend' is active.
+                return `${currentMaterialFolder}/${prefix}c${paddedId}.png`;
+            }
+
+            /**
+             * Updates all image sources and alt text based on current isFrontView and currentMaterialFolder state.
+             */
+            function updateAllImageSources() {
+                const images = galleryGrid.querySelectorAll('img[data-shirt-id]');
+
+                images.forEach(img => {
+                    const shirtId = parseInt(img.dataset.shirtId);
+                    
+                    // Generate the new source URL based on current states
+                    const newSrc = generateImageSrc(shirtId, isFrontView);
+
+                    // Update the image element's source and alt text
+                    const paddedId = String(shirtId).padStart(2, '0');
+                    img.src = newSrc;
+                    img.alt = `Design ${paddedId} - ${isFrontView ? 'Front' : 'Back'} (${currentMaterialFolder})`;
+                    img.dataset.currentView = isFrontView ? 'front' : 'back';
+                });
+            }
+
+            /**
+             * Renders the initial gallery grid structure (44 items).
+             */
+            function renderGallery() {
+                let html = '';
+                for (let i = 1; i <= totalShirts; i++) {
+                    const paddedId = String(i).padStart(2, '0');
+                    html += `
+                        <div class="bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 transform hover:scale-[1.02]">
+                            <!-- Image element: Initial src="" but will be corrected by updateAllImageSources -->
+                            <img id="shirt-${paddedId}" 
+                                 data-shirt-id="${i}"
+                                 data-current-view="front"
+                                 src="" 
+                                 alt="T-Shirt Design ${i}" 
+                                 class="w-full h-auto object-cover aspect-square object-right cursor-pointer"
+                                 onerror="this.onerror=null; this.src='https://placehold.co/300x300/F0F4F8/1F2937?text=Image+Not+Found';"
+                            >
+                            <div class="p-4 text-center">
+                                <p class="text-sm font-medium text-gray-700">Design ${paddedId}</p>
+                            </div>
+                        </div>
+                    `;
+                }
+                galleryGrid.innerHTML = html;
+
+                // Set initial image sources and attach listeners after elements are in the DOM
+                updateAllImageSources(); 
+                
+                // Attach click listeners to all newly rendered images to open the modal
+                galleryGrid.querySelectorAll('img[data-shirt-id]').forEach(img => {
+                    img.addEventListener('click', () => {
+                        openModal(img.src, img.alt);
+                    });
+                });
+            }
+
+            /**
+             * Toggles the view of all images between front and back (using the floating button).
+             */
+            function toggleView() {
+                // Flip the state
+                isFrontView = !isFrontView;
+                
+                // Update floating button text and icon
+                if (isFrontView) {
+                    viewToggleLabel.textContent = 'Show Back View';
+                    iconFront.classList.remove('hidden');
+                    iconBack.classList.add('hidden');
+                    viewToggleButton.setAttribute('aria-pressed', 'false');
+                } else {
+                    viewToggleLabel.textContent = 'Show Front View';
+                    iconFront.classList.add('hidden');
+                    iconBack.classList.remove('hidden');
+                    viewToggleButton.setAttribute('aria-pressed', 'true');
+                }
+
+                // Update all image sources based on the new view state
+                updateAllImageSources();
+            }
+
+            /**
+             * Sets the image folder and updates the button highlighting for the segmented control.
+             * @param {string} newFolder - 'cotton' or 'blend'
+             */
+            function setMaterialFolder(newFolder) {
+                if (currentMaterialFolder === newFolder) {
+                    return; // Already active
+                }
+                
+                currentMaterialFolder = newFolder;
+                
+                // Helper to define active/inactive classes
+                const activeClasses = ['bg-indigo-600', 'text-white', 'shadow-md'];
+                const inactiveClasses = ['text-gray-700', 'hover:bg-gray-200'];
+
+                // Determine which button to activate/deactivate
+                const activateButton = newFolder === 'cotton' ? cottonButton : blendButton;
+                const deactivateButton = newFolder === 'cotton' ? blendButton : cottonButton;
+                
+                // Apply active styles
+                activateButton.classList.add(...activeClasses);
+                activateButton.classList.remove(...inactiveClasses);
+                
+                // Apply inactive styles
+                deactivateButton.classList.remove(...activeClasses);
+                deactivateButton.classList.add(...inactiveClasses);
+
+                // Update all image sources based on the new material folder
+                updateAllImageSources();
+            }
+
+            // 1. Initial Render
+            renderGallery();
+
+            // 2. Attach Event Listener to the Floating View Toggle
+            viewToggleButton.addEventListener('click', toggleView);
+            
+            // 3. Attach Event Listeners to the Material Buttons
+            cottonButton.addEventListener('click', () => setMaterialFolder('cotton'));
+            blendButton.addEventListener('click', () => setMaterialFolder('blend'));
+
+            // 4. Attach Event Listeners for the Modal
+            modalCloseButton.addEventListener('click', closeModal);
+            // Close modal when clicking the dark background overlay
+            imageModal.addEventListener('click', (e) => {
+                if (e.target.id === 'image-modal') {
+                    closeModal();
+                }
+            });
+            
+            // Allow closing with the Escape key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && !imageModal.classList.contains('hidden')) {
+                    closeModal();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+
